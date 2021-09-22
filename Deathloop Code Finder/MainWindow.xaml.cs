@@ -28,7 +28,11 @@ namespace Deathloop_Code_Finder
 				return;
 			}
 
-			_ = codeArray.DerefOffsets(proc, out IntPtr arrayPtr);
+			SignatureScanner scanner = new SignatureScanner(proc, proc.MainModule.BaseAddress, proc.MainModule.ModuleMemorySize);
+			SigScanTarget codeArraySig = new SigScanTarget("48 03 15 ?? ?? ?? ?? 44 89 44 24 30 4C 8D 44 24 30");
+			IntPtr arrayPtr = scanner.Scan(codeArraySig) + 0x3;
+			arrayPtr += proc.ReadValue<int>(arrayPtr) + 0x4;
+			arrayPtr = proc.ReadPointer(arrayPtr);
 
 			for (int i = 0; i < codeIndices.Length; i++)
 			{
@@ -49,6 +53,10 @@ namespace Deathloop_Code_Finder
 				string codeString = "";
 				for (int c = 0; c < 4; c++)
 				{
+					if(index == 60 && c == 3)
+					{
+						continue;
+					}
 					codeString += codeBytes[c * 4].ToString();
 				}
 
@@ -56,11 +64,6 @@ namespace Deathloop_Code_Finder
 
 				switch (index)
 				{
-					case 60:
-					{
-						codeString = codeString.Substring(0, 3);
-						break;
-					}
 					case 62:
 					{
 						char letter = (char)(codeString[0] + (char)0x11);
