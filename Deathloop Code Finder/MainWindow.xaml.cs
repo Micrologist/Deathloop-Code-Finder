@@ -28,11 +28,7 @@ namespace Deathloop_Code_Finder
 				return;
 			}
 
-			SignatureScanner scanner = new SignatureScanner(proc, proc.MainModule.BaseAddress, proc.MainModule.ModuleMemorySize);
-			SigScanTarget codeArraySig = new SigScanTarget("48 03 15 ?? ?? ?? ?? 44 89 44 24 30 4C 8D 44 24 30");
-			IntPtr arrayPtr = scanner.Scan(codeArraySig) + 0x3;
-			arrayPtr += proc.ReadValue<int>(arrayPtr) + 0x4;
-			arrayPtr = proc.ReadPointer(arrayPtr);
+			IntPtr arrayPtr = GetArrayPtr(proc);
 
 			for (int i = 0; i < codeIndices.Length; i++)
 			{
@@ -89,6 +85,8 @@ namespace Deathloop_Code_Finder
 				codeBlock.Text += codeString;
 
 			}
+
+			GC.Collect();
 		}
 
 		private Process Hook()
@@ -102,10 +100,20 @@ namespace Deathloop_Code_Finder
 			return proc.HasExited ? null : proc;
 		}
 
+		private IntPtr GetArrayPtr(Process proc)
+		{
+			SignatureScanner scanner = new SignatureScanner(proc, proc.MainModule.BaseAddress, proc.MainModule.ModuleMemorySize);
+			SigScanTarget codeArraySig = new SigScanTarget("48 03 15 ?? ?? ?? ?? 44 89 44 24 30 4C 8D 44 24 30");
+			IntPtr arrayPtr = scanner.Scan(codeArraySig) + 0x3;
+			arrayPtr += proc.ReadValue<int>(arrayPtr) + 0x4;
+			arrayPtr = proc.ReadPointer(arrayPtr);
+			return arrayPtr;
+		}
+
 		private void SaveBtn_Click(object sender, RoutedEventArgs e)
 		{
-			e.Handled = true;
 			Scan();
+			e.Handled = true;
 		}
 
 		private void CopyBtn_Click(object sender, RoutedEventArgs e)
